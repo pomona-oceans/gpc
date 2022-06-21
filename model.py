@@ -42,13 +42,13 @@ def f(y, t):
     return K @ y
 
 # initial reservoir conditions
-reservoir_init = np.array([1.8e6, 3e5, 2800, 44, 1.1e5]) # Tg P
+reservoir_init = np.array([2e9, 2e5, 280, 44, 1e5]) # Tg P
 
 # scale to match global magnitude
 reservoir_init *= (total / reservoir_init.sum())
 
 # time interval
-t_int = np.arange(1e6) # yr
+t_int = np.arange(1e3) # yr
 
 # solver
 solution = odeint(f, reservoir_init, t_int)
@@ -61,5 +61,5 @@ fig, ax = plt.subplots()
 ax.plot(solution)
 ax.set_yscale('log')
 plt.legend(boxes, loc='upper right')
-ax.plot(solution_ss, "--", linewidth=0.5)
+ax.plot(solution_ss, "--", linewidth=0.5, color='grey')
 plt.savefig("figure.pdf")
