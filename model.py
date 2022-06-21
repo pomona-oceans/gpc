@@ -1,5 +1,6 @@
 import numpy as np
 
+# reservoir names
 boxes = ("sed", "soil", "surface_ocean", "ocean_biota", "deep_ocean")
 
 N = len(boxes)
