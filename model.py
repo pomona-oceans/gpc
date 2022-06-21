@@ -2,7 +2,9 @@ import numpy as np
 from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 
-# functions
+def fill_hollow(matrix):
+    """Sets diagonal entries so each column sums to zero."""
+    matrix -= np.diag(matrix.sum(axis=0))
 
 def row_col_test(matrix):
     """True if all columns and rows sum to zero."""
@@ -13,7 +15,7 @@ boxes = ("sed", "soil", "surface_ocean", "ocean_biota", "deep_ocean")
 N = len(boxes)
 
 # reservoir magnitute at steady state (Tg P)
-reservoir_ss = np.array([2000000000, 200000, 2800, 44, 100000])
+reservoir_ss = np.array([2e9, 2e5, 2800, 44, 1e5])
 
 # fluxes at steady state (Tg P / y)
 flux_ss = np.array([[ 0, 18,   0,   0,  2],
@@ -23,7 +25,7 @@ flux_ss = np.array([[ 0, 18,   0,   0,  2],
                     [ 0,  0,  18,  40,  0]])
 
 # fill diagonal terms of flux matrix
-flux_ss -= np.diag(flux_ss.sum(axis=0))
+fill_hollow(flux_ss)
 
 # convert fluxes to linear rate constants
 K = flux_ss / reservoir_ss
