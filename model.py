@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.integrate import odeint
+from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 
 # functions:
@@ -80,6 +81,17 @@ K = P_flux / reservoir_ss
 # constant coeff. unforced system y' = Ky
 def unforced_const_coeff(y, t):
     return K @ y
+
+# time-dependent forcing from Table 1 Avigad & Gvirtzman (2009)
+erosion_forcing = {
+    'time': np.array([635, 630, 615, 600, 530]), # Ma
+    'crustal_thickness': np.array([50, 50, 42, 37, 35]), # km
+    'mantle_lith_thickness': np.array([150, 0, 55, 85, 100]), # km
+    'moho_temp': np.array([3, 1300, 900, 850, 650]), # deg C
+    'crust_topo_contrib': np.array([-2.3, 3, 2.2, 1.7, 1.5]),
+    'mantle_topo_contrib': np.np.array([0, 0, -0.5, -0.75, -1.3]),
+    'calc_topo': np.np.array([0.5, 3, 1.7, 0.95, 0.2, ]),
+}
 
 def general(y, t):
     A = K
