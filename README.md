@@ -106,7 +106,7 @@ $$\begin{bmatrix}
 Then we want to tip this vector up 45 degrees to the right to form a diagonal matrix like so:
 
 $$\begin{bmatrix}
-(k_{1\leftarrow0} + k_{2\leftarrow0}) \\ & (k_{0\leftarrow1} + k_{2\leftarrow1}) \\ & & (k_{0\leftarrow2} + k_{1\leftarrow2})
+(k_{1\leftarrow0} + k_{2\leftarrow0}) & 0 & 0\\ 0 & (k_{0\leftarrow1} + k_{2\leftarrow1}) & 0\\0 & 0 & (k_{0\leftarrow2} + k_{1\leftarrow2})
 \end{bmatrix}$$
 
 with zeroes in all the other entries. Now we have just the right missing puzzle piece to fill in the gaps of our first attempt. We just have to make sure to subtract, rather than add, to match the signs we want.
