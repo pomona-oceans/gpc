@@ -59,14 +59,14 @@ There's just one glaring problem here. We first defined our matrices in such a w
 $$\mathbf{p}'=F=K\mathbf{p}$$
 
 which we (the computer) can solve numerically. To see the problem with our construction so far, we can write out this system explicitly for each reservoir:
-$$\begin{gather*}
+$$
   \mathbf{p}'_0=
   \mathbf{p}_1k_{0\leftarrow1} + \mathbf{p}_2k_{0\leftarrow2}\\
   \mathbf{p}'_1=
   \mathbf{p}_0k_{1\leftarrow0}  + \mathbf{p}_2k_{1\leftarrow2}\\
   \mathbf{p}'_2=  
   \mathbf{p}_0k_{2\leftarrow0} + \mathbf{p}_1k_{2\leftarrow1}
-\end{gather*}$$
+$$
 You should check that this system is exactly equivalent to $\mathbf{p}'=K\mathbf{p}$ as $K$ has been defined so far. But there's something missing. We need to account for how each reservoir affects its own rate of change. Since each flux is proportional to the size of its source, we should expect that as a reservoir gets larger, its rate of change actually becomes more negative, since more phosphate is flowing out. For each flux, we have already accounted for the positie influence it has on its sink. Now we just need to match these to the negative influence it has on its source:
 $$\begin{gather*}
   \mathbf{p}'_0=
