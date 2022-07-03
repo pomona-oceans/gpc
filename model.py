@@ -89,9 +89,13 @@ erosion_forcing = {
     'mantle_lith_thickness': np.array([150, 0, 55, 85, 100]), # km
     'moho_temp': np.array([3, 1300, 900, 850, 650]), # deg C
     'crust_topo_contrib': np.array([-2.3, 3, 2.2, 1.7, 1.5]),
-    'mantle_topo_contrib': np.np.array([0, 0, -0.5, -0.75, -1.3]),
-    'calc_topo': np.np.array([0.5, 3, 1.7, 0.95, 0.2, ]),
+    'mantle_topo_contrib': np.array([0, 0, -0.5, -0.75, -1.3]),
+    'calc_topo': np.array([0.5, 3, 1.7, 0.95, 0.2, ]),
 }
+
+erosion_time_years = np.arange(-1e9*erosion_forcing['time'[0]])
+
+interpolated_topo = interp1d(erosion_forcing['time'], erosion_forcing['calc_topo'])
 
 def general(y, t):
     A = K
