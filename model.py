@@ -27,7 +27,7 @@ total = reservoir_ss.sum()
 P_flux = np.zeros((N,N))
 
 # dependencies for flux definitions
-weathering_rate = 2e4 # Tg P /yr
+weathering_rate = 2e4 # Tg sediment /yr
 crustal_p_abundance = 0.001 # g P /g sediment
 insol_frac = 0.9
 
@@ -74,11 +74,17 @@ flux_ss = np.array([[ 0, 18,   0,   0,  2],
 fill_hollow(flux_ss)
 
 # flux (Tg P /yr) to linear rate constants (/yr)
+# divide each column of P_flux by entry in vector of reservoir sizes
 K = P_flux / reservoir_ss
 
-# constant coeff. linear homogeneous system y' = Ky
-def f(y, t):
+# constant coeff. unforced system y' = Ky
+def unforced_const_coeff(y, t):
     return K @ y
+
+def general(y, t):
+    A = K
+    b = np.zeros(N)
+    return A @ y + b
 
 # initial reservoir conditions
 reservoir_init = np.array([2e9, 2e5, 280, 44, 1e5]) # Tg P
@@ -90,7 +96,7 @@ reservoir_init *= (total / reservoir_init.sum())
 t_int = np.arange(1e3) # yr
 
 # solver
-solution = odeint(f, reservoir_init, t_int)
+solution = odeint(unforced_const_coeff, reservoir_init, t_int)
 
 # ss solution for plot comparison
 solution_ss = np.tile(reservoir_ss, len(t_int)).reshape(len(t_int), N)
