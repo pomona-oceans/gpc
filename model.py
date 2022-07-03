@@ -2,6 +2,7 @@ import numpy as np
 from scipy.integrate import odeint
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
+import scipy.linalg as LA
 
 # functions:
 def fill_hollow(matrix):
@@ -11,6 +12,11 @@ def fill_hollow(matrix):
 def row_col_test(matrix):
     """True if all columns and rows sum to zero."""
     return matrix.sum(axis=0) == matrix.sum(axis=1) == 0
+
+def steady_state(k_matrix):
+    """Compute steady state for a system y'=Ay"""
+    w, v = LA.eig(k_matrix) # evecs & evals
+    return np.abs(v[:, np.argmin(np.abs(w))]) # return evec with smallest eval
 
 # reservoir names
 boxes = ["sed", "soil", "surf", "biota", "deep"]
@@ -84,23 +90,25 @@ def unforced_const_coeff(y, t):
 
 # time-dependent forcing from Table 1 Avigad & Gvirtzman (2009)
 erosion_forcing = {
-    'time': np.array([635, 630, 615, 600, 530]), # Ma
+    'time': np.array([635.0, 630.0, 615.0, 600.0, 530.0]), # Ma
     'crustal_thickness': np.array([50, 50, 42, 37, 35]), # km
     'mantle_lith_thickness': np.array([150, 0, 55, 85, 100]), # km
     'moho_temp': np.array([3, 1300, 900, 850, 650]), # deg C
-    'crust_topo_contrib': np.array([-2.3, 3, 2.2, 1.7, 1.5]),
-    'mantle_topo_contrib': np.array([0, 0, -0.5, -0.75, -1.3]),
-    'calc_topo': np.array([0.5, 3, 1.7, 0.95, 0.2, ]),
+    'crust_topo_contrib': np.array([-2.3, 3, 2.2, 1.7, 1.5]), # km
+    'mantle_topo_contrib': np.array([0, 0, -0.5, -0.75, -1.3]), # km
+    'calc_topo': np.array([0.5, 3, 1.7, 0.95, 0.2, ]), # km
 }
 
-erosion_time_years = np.arange(-1e9*erosion_forcing['time'[0]])
+erosion_forcing['time'] *= -1.0e9 # convert Ma to years
+
+erosion_time_years = np.arange(erosion_forcing['time'][0], erosion_forcing['time'][-1], 100000)
 
 interpolated_topo = interp1d(erosion_forcing['time'], erosion_forcing['calc_topo'])
 
 def general(y, t):
-    A = K
+    k_matrix = K
     b = np.zeros(N)
-    return A @ y + b
+    return k_matrix @ y + b
 
 # initial reservoir conditions
 reservoir_init = np.array([2e9, 2e5, 280, 44, 1e5]) # Tg P
