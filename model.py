@@ -1,92 +1,125 @@
+from types import SimpleNamespace
 import numpy as np
 from scipy.integrate import odeint
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 import scipy.linalg as LA
 
-# functions:
+# matrix functions:
+
 def fill_hollow(matrix):
     """Sets diagonal entries so each column sums to zero."""
-    matrix -= np.diag(matrix.sum(axis=0))
+    return matrix - np.diag(matrix.sum(axis=0))
 
 def row_col_test(matrix):
     """True if all columns and rows sum to zero."""
     return matrix.sum(axis=0) == matrix.sum(axis=1) == 0
 
-def steady_state(k_matrix):
+def steady_state(matrix):
     """Compute steady state for a system y'=Ay"""
-    w, v = LA.eig(k_matrix) # evecs & evals
-    return np.abs(v[:, np.argmin(np.abs(w))]) # return evec with smallest eval
+    w, v = LA.eig(matrix) # evecs & evals
+    return np.abs(v[:, np.argmin(np.abs(w))]) # evec with eval closest to 0
 
-# reservoir names
-boxes = ["sed", "soil", "surf", "biota", "deep"]
+# model setup
+
+box_names = ["sed", "soil", "surf", "bio", "deep"]
+
 # number of boxes
-N = len(boxes)
+N = len(box_names)
 
-# for readable indexing
-sed, soil, surf, biota, deep = np.arange(N)
+# dictionary for readable indexing
+box_dict = {}
+for x in range(N):
+    box_dict[box_names[x]] = x
 
-# reservoir magnitute at steady state (Tg P)
-reservoir_ss = np.array([2e9, 2e5, 2800, 44, 1e5])
-total = reservoir_ss.sum()
+#i.sed = 0, i.soil = 1, etc
+i = SimpleNamespace(**box_dict)
 
-# initialize flux matrix
-P_flux = np.zeros((N,N))
+# steady state (SS) magnitude vector (Tg P)
+MAG_SS = np.zeros(N)
+MAG_SS[i.sed] = 2e9
+MAG_SS[i.soil] = 2e5
+MAG_SS[i.surf] = 2800
+MAG_SS[i.bio] = 44
+MAG_SS[i.deep] = 1e5
 
-# dependencies for flux definitions
-weathering_rate = 2e4 # Tg sediment /yr
-crustal_p_abundance = 0.001 # g P /g sediment
-insol_frac = 0.9
+GLOBAL_MAG_SS = MAG_SS.sum()
 
-redfield_C_P_molar = 106
-P_molar_mass = 31 # g /mol
-C_molar_mass = 12 # g /mol
-redfield_C_P_mass = redfield_C_P_molar * C_molar_mass / P_molar_mass
+# initial magnitude vector (Tg P)
+MAG_INIT = np.zeros(N)
+MAG_INIT[i.sed] = 2e9
+MAG_INIT[i.soil] = 2e5
+MAG_INIT[i.surf] = 280
+MAG_INIT[i.bio] = 44
+MAG_INIT[i.deep] = 1e5
 
-gross_surf_prod = 4e4 # Tg C /yr
+# scale initial conditions to match global magnitude
+MAG_INIT *= (GLOBAL_MAG_SS / MAG_INIT.sum())
 
-remin_frac = .96
+# biogeochemical parameters
+WEATHERING_RATE = 2e4 # Tg sediment /yr
+CRUST_P_ABUND = 0.001 # g P /g sediment
+INSOLUBLE_FRAC = 0.9
 
-vert_exchange = 2 # m /yr
-surf_p_conc = 0.025 # g /m^3
-deep_p_conc = 0.080 # g /m^3
-ocean_surf_area = 3.5e14 # m^2
-g_to_Tg = 1e12 # g /Tg
+SURF_GPP = 4e4 # Tg C /yr
+C_MASS = 12 # g /mol
+P_MASS = 31 # g /mol
+REDFIELD_MOLE = 106
+REDFIELD_MASS = REDFIELD_MOLE * C_MASS / P_MASS
 
-# define well constrained fluxes based on parameters
-# entries set according to P_flux[TO,FROM]
-P_flux[sed,soil] = weathering_rate * crustal_p_abundance * insol_frac
-P_flux[surf,soil] = weathering_rate * crustal_p_abundance * (1 - insol_frac)
-P_flux[biota,surf] = gross_surf_prod / redfield_C_P_mass
-P_flux[surf,biota] = P_flux[biota,surf] * remin_frac
-P_flux[deep,biota] = P_flux[biota,surf] * (1 - remin_frac)
-P_flux[deep,surf] = vert_exchange * surf_p_conc * ocean_surf_area / g_to_Tg
-P_flux[surf,deep] = vert_exchange * deep_p_conc * ocean_surf_area / g_to_Tg
+REMIN_FRAC = .96
 
-# define poorly constrained fluxes based on steady state
-P_flux[sed,deep] = (P_flux.sum(axis=1)-P_flux.sum(axis=0))[deep]
-P_flux[soil,sed] = (P_flux.sum(axis=1)-P_flux.sum(axis=0))[sed]
+VERT_EXCH = 2 # m /yr
+SURF_CONC = 0.025 # g /m^3
+DEEP_CONC = 0.080 # g /m^3
+OCEAN_SA = 3.5e14 # m^2
+VERT_FLOW = VERT_EXCH * OCEAN_SA / 1e12 # (1e12 g /Tg)
 
-# fill diagonal terms
-fill_hollow(P_flux)
+# flux matrix
+F = np.zeros((N, N))
 
-# fluxes at steady state (Tg P /y)
-flux_ss = np.array([[ 0, 18,   0,   0,  2],
-                    [20,  0,   0,   0,  0],
-                    [ 0,  2,   0, 940, 56],
-                    [ 0,  0, 980,   0,  0],
-                    [ 0,  0,  18,  40,  0]])
+# well constrained fluxes
+# F[A,B] is from B to A
+F[i.sed,i.soil] = WEATHERING_RATE * CRUST_P_ABUND * INSOLUBLE_FRAC
+F[i.surf,i.soil] = WEATHERING_RATE * CRUST_P_ABUND * (1 - INSOLUBLE_FRAC)
 
-# fill diagonal terms of flux_ss matrix
-fill_hollow(flux_ss)
+F[i.bio,i.surf] = SURF_GPP / REDFIELD_MASS
+
+F[i.surf,i.bio] = F[i.bio,i.surf] * REMIN_FRAC
+F[i.deep,i.bio] = F[i.bio,i.surf] * (1 - REMIN_FRAC)
+
+F[i.deep,i.surf] = VERT_FLOW * SURF_CONC
+F[i.surf,i.deep] = VERT_FLOW * DEEP_CONC
+
+# poorly constrained fluxes defined to satisfy SS for one box
+F[i.sed,i.deep] = (F.sum(axis=1) - F.sum(axis=0))[i.deep]
+F[i.soil,i.sed] = (F.sum(axis=1) - F.sum(axis=0))[i.sed]
 
 # flux (Tg P /yr) to linear rate constants (/yr)
-# divide each column of P_flux by entry in vector of reservoir sizes
-K = P_flux / reservoir_ss
+# divide each column of F (FROM) by source reservoir mag.
+# and fill diagonal entries
+K = fill_hollow(F / MAG_SS)
 
-# constant coeff. unforced system y' = Ky
-def unforced_const_coeff(y, t):
-    return K @ y
+# constant coeff. unforced system p' = Kp
+def unforced_const_coeff(p, t):
+    return K @ p
+
+# time interval
+t_int = np.arange(1e3) # yr
+
+# solver
+solution = odeint(unforced_const_coeff, MAG_INIT, t_int)
+
+# ss solution for plot comparison
+solution_ss = np.tile(MAG_SS, len(t_int)).reshape(len(t_int), N)
+
+# plot
+fig, ax = plt.subplots()
+ax.plot(solution)
+ax.set_yscale('log')
+plt.legend(box_names, loc='upper right')
+ax.plot(solution_ss, "--", linewidth=0.5, color='grey')
+plt.savefig("figure.pdf")
 
 # time-dependent forcing from Table 1 Avigad & Gvirtzman (2009)
 erosion_forcing = {
@@ -105,30 +138,7 @@ erosion_time_years = np.arange(erosion_forcing['time'][0], erosion_forcing['time
 
 interpolated_topo = interp1d(erosion_forcing['time'], erosion_forcing['calc_topo'])
 
-def general(y, t):
+def general(p, t):
     k_matrix = K
     b = np.zeros(N)
-    return k_matrix @ y + b
-
-# initial reservoir conditions
-reservoir_init = np.array([2e9, 2e5, 280, 44, 1e5]) # Tg P
-
-# scale to match global magnitude
-reservoir_init *= (total / reservoir_init.sum())
-
-# time interval
-t_int = np.arange(1e3) # yr
-
-# solver
-solution = odeint(unforced_const_coeff, reservoir_init, t_int)
-
-# ss solution for plot comparison
-solution_ss = np.tile(reservoir_ss, len(t_int)).reshape(len(t_int), N)
-
-# plot
-fig, ax = plt.subplots()
-ax.plot(solution)
-ax.set_yscale('log')
-plt.legend(boxes, loc='upper right')
-ax.plot(solution_ss, "--", linewidth=0.5, color='grey')
-plt.savefig("figure.pdf")
+    return k_matrix @ p + b

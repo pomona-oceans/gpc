@@ -2,10 +2,19 @@
 
 The purpose of this project is to explore the role of global phosphorous cycling in the unusual geochemical landscapes of the late Neoproterozoic. We aim to account for a variety of factors including biogeochemistry, erosion, and sedimentary deposition within their tectonic context.
 
-Our strategy is to construct a simple box model representing components and interrelationships of the global phosphorous reservoir. This model follows, e.g., chapter 5 of Chameides & Perdue's _Biogeochemical Cycles._ The basic construction is a linear system of the form:
+Our strategy is to construct a simple box model representing components and interrelationships of the global phosphorous reservoir. This model follows, e.g., chapter 5 of Chameides & Perdue's _Biogeochemical Cycles._ The basic construction is a general linear system of the form:
 
 $$\mathbf{y}'(t) = A(t)\mathbf{y}(t) + \mathbf{b}(t).$$
 
+For a system with $n$ boxes, $\mathbf{y}(t)$ and $\mathbf{y}'(t)$ are vectors with $n$ entries. $A(t)$ is an $n\times n$ matrix describing the linear interdependencies of each box, and $\mathbf{b}(t)$ is an $n-$vector meant to capture external "forcing."
+
+The simplest starting case is unforced, which means $\mathbf{b}(t)$ = $\overrightarrow{0}$. Additionally, we assume the linear dependencies in $A(t)$ are constant, i.e., $A(t)=A$. Thus, the system is given by:
+
+$$\mathbf{y}'(t) = A\mathbf{y}(t).$$
+
+Given initial conditions $\mathbf{y}(0) = \mathbf{y}_0$, the solution to this system is 
+
+$$\mathbf{y}(t) = e^{At}\cdot\mathbf{y}_0.$$
 ## Derivation
 
 A three-box model captures most of the complexity of a general $n$-box model, so we'll use that to explore the procedure. Following Chameides & Perdue (1997), I use the capital letter $F$ to indicate fluxes of phosphate between reservoirs in teragrams per year.
@@ -32,33 +41,23 @@ $$\mathbf{p} = \begin{bmatrix}
 \end{bmatrix}(\text{Tg P})$$
 
 That means our rate constant matrix will be constructed as follows:
-$$\begin{bmatrix}
-  & f_{0\leftarrow1} &   f_{0\leftarrow2}\\
-    f_{1\leftarrow0} & & f_{1\leftarrow2}\\
-    f_{2\leftarrow0} &   f_{2\leftarrow1}
-\end{bmatrix}\begin{bmatrix}
-  1/p_0 \\ 1/p_1 \\ 1/p_2
-\end{bmatrix} = \begin{bmatrix}
+ $$K = \begin{bmatrix}
 & f_{0\leftarrow1} / p_1 &   f_{0\leftarrow2} / p_2\\
   f_{1\leftarrow0} / p_0 & & f_{1\leftarrow2} / p_2\\
   f_{2\leftarrow0} / p_0 &   f_{2\leftarrow1} / p_1
-\end{bmatrix}$$
-and we end up with
- $$K = \begin{bmatrix}
+\end{bmatrix} = \begin{bmatrix}
   & k_{0\leftarrow1} &   k_{0\leftarrow2}\\
     k_{1\leftarrow0} & & k_{1\leftarrow2}\\
     k_{2\leftarrow0} &   k_{2\leftarrow1}
 \end{bmatrix} (\text{yr}^{-1}).$$
 
-Algebraically, we could call this transformation a _factorization:_ $$F = K\mathbf{p}.$$
-
-The point of doing this factorization is that we might want to experimentally manipulate $K$ and $\mathbf{p}$ as a function of time $t$, and see how they affect $F$ and subsequenctly the model behavior. Remember, $K$ and $\mathbf{p}$ have physical meaning: one being the magnitude of the phosphate reservoirs, and the other being the _sensetivity_ of each flux to reservoir magnitudes. We certainly expect the reservoir magnitudes to change over time as phosphate flows throughout the system. But we might also expect that global climate or tectonic conditions might change the "sensitivity" as well. For example, even holding all reservoir magnitudes constant, a hotter climate will tend to promote more rapid weathering and erosion, so $K$ could be a function of $t$.
+The point of doing this factorization is that we might want to experimentally manipulate $K$ and $\mathbf{p}$ as a function of time $t$, and see how they affect $F$ and subsequenctly the model behavior. Remember, $K$ and $\mathbf{p}$ have physical meaning: one being the magnitude of the phosphate reservoirs, and the other being the _sensetivity_ of each flux to reservoir magnitudes. We certainly expect the reservoir magnitudes to change over time as phosphate fluxes throughout the system. But we might also expect that global climate or tectonic conditions might change the "sensitivity" as well. For example, even holding all reservoir magnitudes constant, a hotter climate will tend to promote more rapid weathering and erosion, so $K$ could be a function of $t$.
 
 There's just one glaring problem here. We first defined our matrices in such a way that the diagonal terms are zero, since we can't really interpret a flux from a reservoir to itself. But remember, we can't really make any time-dependent predictions using just $F$ or even with $K\mathbf{p}$. We want an expression for how each reservoir (magnitude) evolves over time, which is to say $d\mathbf{p}/dt$ or $\mathbf{p}'$. We would love something like
 
-$$\mathbf{p}'=F=K\mathbf{p}$$
+$$\mathbf{p}'=K\mathbf{p}$$
 
-which we (the computer) can solve numerically. To see the problem with our construction so far, we can write out this system explicitly for each reservoir:
+which we (the computer) can solve numerically or analytically. To see the problem with our construction so far, we can write out this system explicitly for each reservoir:
 $$
   \mathbf{p}'_0=
   \mathbf{p}_1k_{0\leftarrow1} + \mathbf{p}_2k_{0\leftarrow2}\\
@@ -67,7 +66,7 @@ $$
   \mathbf{p}'_2=  
   \mathbf{p}_0k_{2\leftarrow0} + \mathbf{p}_1k_{2\leftarrow1}
 $$
-You should check that this system is exactly equivalent to $\mathbf{p}'=K\mathbf{p}$ as $K$ has been defined so far. But there's something missing. We need to account for how each reservoir affects its own rate of change. Since each flux is proportional to the size of its source, we should expect that as a reservoir gets larger, its rate of change actually becomes more negative, since more phosphate is flowing out. For each flux, we have already accounted for the positie influence it has on its sink. Now we just need to match these to the negative influence it has on its source:
+You should check that this system is exactly equivalent to $\mathbf{p}'=K\mathbf{p}$ as $K$ has been defined so far. But there's something missing. We need to account for how each reservoir affects its own rate of change. Since each flux is proportional to the size of its source, we should expect that as a reservoir gets larger, its rate of change becomes more negative, since the rate of outflux is proportional to magnitude. For each flux, we have already accounted for the positie influence it has on its sink. Now we just need to match these to the negative influence it has on its source:
 $$\begin{gather*}
   \mathbf{p}'_0=
   \mathbf{p}_0(-k_{1\leftarrow0}-k_{2\leftarrow0}) + \mathbf{p}_1k_{0\leftarrow1} + \mathbf{p}_2k_{0\leftarrow2}\\
