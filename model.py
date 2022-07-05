@@ -7,13 +7,9 @@ import scipy.linalg as LA
 
 # matrix functions:
 
-def fill_hollow(matrix):
+def fill_diag(matrix):
     """Sets diagonal entries so each column sums to zero."""
     return matrix - np.diag(matrix.sum(axis=0))
-
-def row_col_test(matrix):
-    """True if all columns and rows sum to zero."""
-    return matrix.sum(axis=0) == matrix.sum(axis=1) == 0
 
 def steady_state(matrix):
     """Compute steady state for a system y'=Ay"""
@@ -56,9 +52,13 @@ MAG_INIT[i.deep] = 1e5
 # scale initial conditions to match global magnitude
 MAG_INIT *= (GLOBAL_MAG_SS / MAG_INIT.sum())
 
+# time interval
+T = np.arange(1e3) # yr
+
 # biogeochemical parameters
 WEATHERING_RATE = 2e4 # Tg sediment /yr
-CRUST_P_ABUND = 0.001 # g P /g sediment
+SED_ABUND = 0.001 # Tg P /Tg sediment
+P_WEATHERING_RATE = WEATHERING_RATE * SED_ABUND # Tg P /yr
 INSOLUBLE_FRAC = 0.9
 
 SURF_GPP = 4e4 # Tg C /yr
@@ -70,18 +70,19 @@ REDFIELD_MASS = REDFIELD_MOLE * C_MASS / P_MASS
 REMIN_FRAC = .96
 
 VERT_EXCH = 2 # m /yr
-SURF_CONC = 0.025 # g /m^3
-DEEP_CONC = 0.080 # g /m^3
 OCEAN_SA = 3.5e14 # m^2
 VERT_FLOW = VERT_EXCH * OCEAN_SA / 1e12 # (1e12 g /Tg)
+
+SURF_CONC = 0.025 # g /m^3
+DEEP_CONC = 0.080 # g /m^3
 
 # flux matrix
 F = np.zeros((N, N))
 
 # well constrained fluxes
 # F[A,B] is from B to A
-F[i.sed,i.soil] = WEATHERING_RATE * CRUST_P_ABUND * INSOLUBLE_FRAC
-F[i.surf,i.soil] = WEATHERING_RATE * CRUST_P_ABUND * (1 - INSOLUBLE_FRAC)
+F[i.sed,i.soil] = P_WEATHERING_RATE * INSOLUBLE_FRAC
+F[i.surf,i.soil] = P_WEATHERING_RATE * (1 - INSOLUBLE_FRAC)
 
 F[i.bio,i.surf] = SURF_GPP / REDFIELD_MASS
 
@@ -98,20 +99,17 @@ F[i.soil,i.sed] = (F.sum(axis=1) - F.sum(axis=0))[i.sed]
 # flux (Tg P /yr) to linear rate constants (/yr)
 # divide each column of F (FROM) by source reservoir mag.
 # and fill diagonal entries
-K = fill_hollow(F / MAG_SS)
+K = fill_diag(F / MAG_SS)
 
 # constant coeff. unforced system p' = Kp
 def unforced_const_coeff(p, t):
     return K @ p
 
-# time interval
-t_int = np.arange(1e3) # yr
-
 # solver
-solution = odeint(unforced_const_coeff, MAG_INIT, t_int)
+solution = odeint(unforced_const_coeff, MAG_INIT, T)
 
 # ss solution for plot comparison
-solution_ss = np.tile(MAG_SS, len(t_int)).reshape(len(t_int), N)
+solution_ss = np.tile(MAG_SS, len(T)).reshape(len(T), N)
 
 # plot
 fig, ax = plt.subplots()
