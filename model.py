@@ -6,11 +6,11 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 
 # boxes
-boxes = pd.Series(["sed", "soil", "surf", "bio", "deep"])
+boxes = ["sed", "soil", "surf", "bio", "deep"]
 N = len(boxes)
 
 # readable indexing: i.sed returns 0, etc.
-i = SN(**dict((v, k) for k, v in boxes.items()))
+i = SN(**dict((v, k) for k, v in pd.Series(boxes).items()))
 
 # Tg P at steady state (SS)
 P_SS = np.zeros(N)
@@ -52,8 +52,8 @@ REDFIELD_MASS = REDFIELD_MOLE * C_MASS / P_MASS
 REMIN_FRAC = .96
 
 VERT_EXCH = 2 # m /yr
-OCEAN_SA = 3.5e14 # m^2
-VERT_FLOW = VERT_EXCH * OCEAN_SA / 1e12 # (1e12 g /Tg)
+SURF_AREA = 3.5e14 # m^2
+VERT_FLOW = VERT_EXCH * SURF_AREA / 1e12 # (1e12 g /Tg)
 
 SURF_CONC = 0.025 # g /m^3
 DEEP_CONC = 0.080 # g /m^3
@@ -89,17 +89,12 @@ K -= np.diag(K.sum(axis=0))
 def unforced_const_coeff(p, t):
     return K @ p
 
-# solver
 solution = odeint(unforced_const_coeff, P_0, t)
 
 # plot
 fig, ax = plt.subplots()
 ax.plot(t, solution)
 ax.plot(t[-1], [P_SS], 'x')
-
 ax.set_yscale('log')
-# ax.set_xscale('log')
-
 plt.legend(boxes)
-
 plt.savefig("figure.pdf")
